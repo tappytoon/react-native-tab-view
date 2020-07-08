@@ -4,16 +4,13 @@ import {
   View,
   StyleProp,
   LayoutChangeEvent,
+  Text,
   TextStyle,
   ViewStyle,
 } from 'react-native';
 import TouchableItem from './TouchableItem';
 import { Scene, Route, NavigationState } from './types';
 import Animated from 'react-native-reanimated';
-import memoize from './memoize';
-
-// @ts-ignore
-const AnimatedInterpolate = Animated.interpolateNode || Animated.interpolate;
 
 type Props<T extends Route> = {
   position: Animated.Node<number>;
@@ -51,38 +48,10 @@ const DEFAULT_INACTIVE_COLOR = 'rgba(255, 255, 255, 0.7)';
 export default class TabBarItem<T extends Route> extends React.Component<
   Props<T>
 > {
-  private getActiveOpacity = memoize(
-    (position: Animated.Node<number>, routes: Route[], tabIndex: number) => {
-      if (routes.length > 1) {
-        const inputRange = routes.map((_, i) => i);
-
-        return AnimatedInterpolate(position, {
-          inputRange,
-          outputRange: inputRange.map((i) => (i === tabIndex ? 1 : 0)),
-        });
-      } else {
-        return 1;
-      }
-    }
-  );
-
-  private getInactiveOpacity = memoize((position, routes, tabIndex) => {
-    if (routes.length > 1) {
-      const inputRange = routes.map((_: Route, i: number) => i);
-
-      return AnimatedInterpolate(position, {
-        inputRange,
-        outputRange: inputRange.map((i: number) => (i === tabIndex ? 0 : 1)),
-      });
-    } else {
-      return 0;
-    }
-  });
 
   render() {
     const {
       route,
-      position,
       navigationState,
       renderLabel: renderLabelPassed,
       renderIcon,
@@ -105,57 +74,31 @@ export default class TabBarItem<T extends Route> extends React.Component<
     const tabIndex = navigationState.routes.indexOf(route);
     const isFocused = navigationState.index === tabIndex;
 
-    const activeOpacity = this.getActiveOpacity(
-      position,
-      navigationState.routes,
-      tabIndex
-    );
-    const inactiveOpacity = this.getInactiveOpacity(
-      position,
-      navigationState.routes,
-      tabIndex
-    );
+    const labelText = getLabelText({ route });
+    const currentColor = isFocused ? activeColor : inactiveColor;
 
     let icon: React.ReactNode | null = null;
     let label: React.ReactNode | null = null;
 
     if (renderIcon) {
-      const activeIcon = renderIcon({
-        route,
-        focused: true,
-        color: activeColor,
-      });
-      const inactiveIcon = renderIcon({
-        route,
-        focused: false,
-        color: inactiveColor,
-      });
-
-      if (inactiveIcon != null && activeIcon != null) {
-        icon = (
-          <View style={styles.icon}>
-            <Animated.View style={{ opacity: inactiveOpacity }}>
-              {inactiveIcon}
-            </Animated.View>
-            <Animated.View
-              style={[StyleSheet.absoluteFill, { opacity: activeOpacity }]}
-            >
-              {activeIcon}
-            </Animated.View>
-          </View>
-        );
-      }
+      icon = (
+        <View style={styles.icon}>
+          {renderIcon({
+            route,
+            focused: isFocused,
+            color: currentColor,
+          })}
+        </View>
+      );
     }
 
     const renderLabel =
       renderLabelPassed !== undefined
         ? renderLabelPassed
-        : ({ route, color }: { route: T; color: string }) => {
-            const labelText = getLabelText({ route });
-
+        : ({ color }: { route: T; color: string }) => {
             if (typeof labelText === 'string') {
               return (
-                <Animated.Text
+                <Text
                   style={[
                     styles.label,
                     icon ? { marginTop: 0 } : null,
@@ -164,7 +107,7 @@ export default class TabBarItem<T extends Route> extends React.Component<
                   ]}
                 >
                   {labelText}
-                </Animated.Text>
+                </Text>
               );
             }
 
@@ -172,27 +115,13 @@ export default class TabBarItem<T extends Route> extends React.Component<
           };
 
     if (renderLabel) {
-      const activeLabel = renderLabel({
-        route,
-        focused: true,
-        color: activeColor,
-      });
-      const inactiveLabel = renderLabel({
-        route,
-        focused: false,
-        color: inactiveColor,
-      });
-
       label = (
         <View>
-          <Animated.View style={{ opacity: inactiveOpacity }}>
-            {inactiveLabel}
-          </Animated.View>
-          <Animated.View
-            style={[StyleSheet.absoluteFill, { opacity: activeOpacity }]}
-          >
-            {activeLabel}
-          </Animated.View>
+          {renderLabel({
+            route,
+            focused: isFocused,
+            color: currentColor,
+          })}
         </View>
       );
     }
