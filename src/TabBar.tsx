@@ -310,6 +310,7 @@ export default class TabBar<T extends Route> extends React.Component<
       renderBadge,
       renderIcon,
       renderLabel,
+      renderIndicator,
       activeColor,
       inactiveColor,
       pressColor,
@@ -339,35 +340,38 @@ export default class TabBar<T extends Route> extends React.Component<
         onLayout={this.handleLayout}
         style={[styles.tabBar, style]}
       >
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            styles.indicatorContainer,
-            scrollEnabled ? { transform: [{ translateX }] as any } : null,
-            tabBarWidth
-              ? { width: tabBarWidth }
-              : scrollEnabled
-              ? { width: tabBarWidthPercent }
-              : null,
-            indicatorContainerStyle,
-          ]}
-        >
-          {this.props.renderIndicator({
-            position,
-            layout,
-            navigationState,
-            jumpTo,
-            width: isWidthDynamic ? 'auto' : `${100 / routes.length}%`,
-            style: indicatorStyle,
-            getTabWidth: this.getMemoizedTabWidthGettter(
+        {renderIndicator ? (
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.indicatorContainer,
+              scrollEnabled ? { transform: [{ translateX }] as any } : null,
+              tabBarWidth
+                ? { width: tabBarWidth }
+                : scrollEnabled
+                ? { width: tabBarWidthPercent }
+                : null,
+              indicatorContainerStyle,
+            ]}
+          >
+            {renderIndicator({
+              position,
               layout,
-              routes,
-              scrollEnabled,
-              tabWidths,
-              this.getFlattenedTabWidth(tabStyle)
-            ),
-          })}
-        </Animated.View>
+              navigationState,
+              jumpTo,
+              width: isWidthDynamic ? 'auto' : `${100 / routes.length}%`,
+              style: indicatorStyle,
+              getTabWidth: this.getMemoizedTabWidthGettter(
+                layout,
+                routes,
+                scrollEnabled,
+                tabWidths,
+                this.getFlattenedTabWidth(tabStyle)
+              ),
+            })}
+          </Animated.View>
+        ) : null}
+
         <View style={styles.scroll}>
           <Animated.ScrollView
             horizontal
